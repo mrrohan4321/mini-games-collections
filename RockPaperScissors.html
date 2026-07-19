@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rock Paper Scissors</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+    color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    color: #a0a0b8;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .scoreboard {
+    display: flex;
+    gap: 24px;
+    background: #2f2f45;
+    padding: 14px 28px;
+    border-radius: 12px;
+    margin-bottom: 28px;
+  }
+  .score-box { text-align: center; }
+  .score-label { font-size: 12px; color: #a0a0b8; }
+  .score-value { font-size: 22px; font-weight: 600; }
+
+  .arena {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 28px;
+    min-height: 100px;
+  }
+  .player-choice, .computer-choice {
+    font-size: 60px;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2f2f45;
+    border-radius: 16px;
+  }
+  .vs { font-size: 16px; color: #a0a0b8; }
+
+  .result-text {
+    font-size: 18px;
+    font-weight: 600;
+    min-height: 26px;
+    margin-bottom: 24px;
+  }
+  .result-win { color: #4ade80; }
+  .result-lose { color: #f87171; }
+  .result-draw { color: #facc15; }
+
+  .choices {
+    display: flex;
+    gap: 16px;
+  }
+  .choice-btn {
+    font-size: 36px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid #4a4a6a;
+    background: #2f2f45;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .choice-btn:hover {
+    transform: scale(1.1);
+    border-color: #7c7ce0;
+  }
+  .choice-btn:active {
+    transform: scale(0.95);
+  }
+  .reset-btn {
+    margin-top: 28px;
+    background: transparent;
+    border: 1px solid #4a4a6a;
+    color: #a0a0b8;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .reset-btn:hover { border-color: #7c7ce0; color: #f5f5f5; }
+</style>
+</head>
+<body>
+
+<h1>Rock Paper Scissors</h1>
+<p class="subtitle">Ekta choice select kor, computer er against khel</p>
+
+<div class="scoreboard">
+  <div class="score-box">
+    <div class="score-label">YOU</div>
+    <div class="score-value" id="playerScore">0</div>
+  </div>
+  <div class="score-box">
+    <div class="score-label">COMPUTER</div>
+    <div class="score-value" id="computerScore">0</div>
+  </div>
+</div>
+
+<div class="arena">
+  <div class="player-choice" id="playerChoiceBox">❓</div>
+  <div class="vs">VS</div>
+  <div class="computer-choice" id="computerChoiceBox">❓</div>
+</div>
+
+<div class="result-text" id="resultText"></div>
+
+<div class="choices">
+  <button class="choice-btn" onclick="play('rock')">🪨</button>
+  <button class="choice-btn" onclick="play('paper')">📄</button>
+  <button class="choice-btn" onclick="play('scissors')">✂️</button>
+</div>
+
+<button class="reset-btn" onclick="resetScore()">Reset score</button>
+
+<script>
+  const emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
+  let playerScore = 0;
+  let computerScore = 0;
+
+  const playerChoiceBox = document.getElementById('playerChoiceBox');
+  const computerChoiceBox = document.getElementById('computerChoiceBox');
+  const resultText = document.getElementById('resultText');
+  const playerScoreEl = document.getElementById('playerScore');
+  const computerScoreEl = document.getElementById('computerScore');
+
+  function getComputerChoice() {
+    const options = ['rock', 'paper', 'scissors'];
+    return options[Math.floor(Math.random() * 3)];
+  }
+
+  function decideWinner(player, computer) {
+    if (player === computer) return 'draw';
+    if (
+      (player === 'rock' && computer === 'scissors') ||
+      (player === 'paper' && computer === 'rock') ||
+      (player === 'scissors' && computer === 'paper')
+    ) {
+      return 'win';
+    }
+    return 'lose';
+  }
+
+  function play(playerChoice) {
+    const computerChoice = getComputerChoice();
+    playerChoiceBox.textContent = emojis[playerChoice];
+    computerChoiceBox.textContent = emojis[computerChoice];
+
+    const outcome = decideWinner(playerChoice, computerChoice);
+
+    resultText.classList.remove('result-win', 'result-lose', 'result-draw');
+
+    if (outcome === 'win') {
+      playerScore++;
+      resultText.textContent = 'You win this round!';
+      resultText.classList.add('result-win');
+    } else if (outcome === 'lose') {
+      computerScore++;
+      resultText.textContent = 'Computer wins this round!';
+      resultText.classList.add('result-lose');
+    } else {
+      resultText.textContent = "It's a draw!";
+      resultText.classList.add('result-draw');
+    }
+
+    playerScoreEl.textContent = playerScore;
+    computerScoreEl.textContent = computerScore;
+  }
+
+  function resetScore() {
+    playerScore = 0;
+    computerScore = 0;
+    playerScoreEl.textContent = 0;
+    computerScoreEl.textContent = 0;
+    playerChoiceBox.textContent = '❓';
+    computerChoiceBox.textContent = '❓';
+    resultText.textContent = '';
+    resultText.classList.remove('result-win', 'result-lose', 'result-draw');
+  }
+</script>
+
+</body>
+</html>
