@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe vs AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+    color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .subtitle { color: #a0a0b8; margin-bottom: 20px; font-size: 14px; text-align: center; }
+
+  .difficulty {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .diff-btn {
+    background: #2f2f45;
+    border: 1px solid #4a4a6a;
+    color: #a0a0b8;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .diff-btn.active {
+    border-color: #7c7ce0;
+    color: #f5f5f5;
+    background: #3f3f5f;
+  }
+
+  .status {
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+    margin-bottom: 20px;
+  }
+  .status-win { color: #4ade80; }
+  .status-lose { color: #f87171; }
+  .status-draw { color: #facc15; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 90px);
+    grid-gap: 8px;
+    margin-bottom: 24px;
+  }
+  .cell {
+    width: 90px;
+    height: 90px;
+    background: #2f2f45;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .cell:hover:not(.filled) {
+    background: #3f3f5f;
+  }
+  .cell.x { color: #7c9ce0; }
+  .cell.o { color: #f0876a; }
+  .cell.win-cell { background: #2f5f45; }
+
+  .scoreboard {
+    display: flex;
+    gap: 24px;
+    background: #2f2f45;
+    padding: 12px 28px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .score-box { text-align: center; }
+  .score-label { font-size: 12px; color: #a0a0b8; }
+  .score-value { font-size: 20px; font-weight: 600; }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid #4a4a6a;
+    color: #a0a0b8;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .reset-btn:hover { border-color: #7c7ce0; color: #f5f5f5; }
+</style>
+</head>
+<body>
+
+<h1>Tic Tac Toe</h1>
+<p class="subtitle">Tui X, AI O. Easy mode e AI mistake korte pare, Hard mode e AI unbeatable!</p>
+
+<div class="difficulty">
+  <button class="diff-btn" id="easyBtn" onclick="setDifficulty('easy')">Easy</button>
+  <button class="diff-btn active" id="hardBtn" onclick="setDifficulty('hard')">Hard (Unbeatable)</button>
+</div>
+
+<div class="scoreboard">
+  <div class="score-box">
+    <div class="score-label">YOU</div>
+    <div class="score-value" id="playerScore">0</div>
+  </div>
+  <div class="score-box">
+    <div class="score-label">DRAW</div>
+    <div class="score-value" id="drawScore">0</div>
+  </div>
+  <div class="score-box">
+    <div class="score-label">AI</div>
+    <div class="score-value" id="aiScore">0</div>
+  </div>
+</div>
+
+<div class="status" id="status">Tor turn (X)</div>
+
+<div class="board" id="board"></div>
+
+<button class="reset-btn" onclick="startNewGame()">New Game</button>
+
+<script>
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const playerScoreEl = document.getElementById('playerScore');
+  const aiScoreEl = document.getElementById('aiScore');
+  const drawScoreEl = document.getElementById('drawScore');
+
+  let board = Array(9).fill('');
+  let gameActive = true;
+  let difficulty = 'hard';
+  let playerScore = 0, aiScore = 0, drawScore = 0;
+
+  const winPatterns = [
+    [0,1,2], [3,4,5], [6,7,8], // rows
+    [0,3,6], [1,4,7], [2,5,8], // cols
+    [0,4,8], [2,4,6]           // diagonals
+  ];
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    board.forEach((val, index) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (val ? ' filled ' + val.toLowerCase() : '');
+      cell.textContent = val;
+      cell.addEventListener('click', () => handleCellClick(index));
+      boardEl.appendChild(cell);
+    });
+  }
+
+  function handleCellClick(index) {
+    if (!gameActive || board[index] !== '') return;
+
+    board[index] = 'X';
+    renderBoard();
+
+    const result = checkGameEnd();
+    if (result) {
+      endGame(result);
+      return;
+    }
+
+    statusEl.textContent = "AI thinking...";
+    gameActive = false;
+
+    setTimeout(() => {
+      const aiMove = difficulty === 'hard' ? getBestMove() : getRandomOrOkMove();
+      board[aiMove] = 'O';
+      renderBoard();
+
+      const aiResult = checkGameEnd();
+      if (aiResult) {
+        endGame(aiResult);
+      } else {
+        gameActive = true;
+        statusEl.textContent = "Tor turn (X)";
+      }
+    }, 400);
+  }
+
+  function checkGameEnd() {
+    for (const pattern of winPatterns) {
+      const [a, b, c] = pattern;
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return { winner: board[a], pattern };
+      }
+    }
+    if (board.every(cell => cell !== '')) {
+      return { winner: 'draw' };
+    }
+    return null;
+  }
+
+  function endGame(result) {
+    gameActive = false;
+    if (result.winner === 'X') {
+      statusEl.textContent = "You win! 🎉";
+      statusEl.className = 'status status-win';
+      playerScore++;
+      playerScoreEl.textContent = playerScore;
+      highlightWin(result.pattern);
+    } else if (result.winner === 'O') {
+      statusEl.textContent = "AI wins!";
+      statusEl.className = 'status status-lose';
+      aiScore++;
+      aiScoreEl.textContent = aiScore;
+      highlightWin(result.pattern);
+    } else {
+      statusEl.textContent = "It's a draw!";
+      statusEl.className = 'status status-draw';
+      drawScore++;
+      drawScoreEl.textContent = drawScore;
+    }
+  }
+
+  function highlightWin(pattern) {
+    if (!pattern) return;
+    const cells = boardEl.children;
+    pattern.forEach(i => cells[i].classList.add('win-cell'));
+  }
+
+  // Minimax algorithm - unbeatable AI
+  function minimax(newBoard, depth, isMaximizing) {
+    const result = checkWinnerForMinimax(newBoard);
+    if (result !== null) {
+      if (result === 'O') return 10 - depth;
+      if (result === 'X') return depth - 10;
+      return 0; // draw
+    }
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (newBoard[i] === '') {
+          newBoard[i] = 'O';
+          best = Math.max(best, minimax(newBoard, depth + 1, false));
+          newBoard[i] = '';
+        }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (newBoard[i] === '') {
+          newBoard[i] = 'X';
+          best = Math.min(best, minimax(newBoard, depth + 1, true));
+          newBoard[i] = '';
+        }
+      }
+      return best;
+    }
+  }
+
+  function checkWinnerForMinimax(b) {
+    for (const pattern of winPatterns) {
+      const [a, bb, c] = pattern;
+      if (b[a] && b[a] === b[bb] && b[a] === b[c]) return b[a];
+    }
+    if (b.every(cell => cell !== '')) return 'draw';
+    return null;
+  }
+
+  function getBestMove() {
+    let bestScore = -Infinity;
+    let move = -1;
+    for (let i = 0; i < 9; i++) {
+      if (board[i] === '') {
+        board[i] = 'O';
+        const score = minimax(board, 0, false);
+        board[i] = '';
+        if (score > bestScore) {
+          bestScore = score;
+          move = i;
+        }
+      }
+    }
+    return move;
+  }
+
+  // Easy mode: 60% random move, 40% best move (so AI is beatable)
+  function getRandomOrOkMove() {
+    const empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+    if (Math.random() < 0.6) {
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+    return getBestMove();
+  }
+
+  function setDifficulty(level) {
+    difficulty = level;
+    document.getElementById('easyBtn').classList.toggle('active', level === 'easy');
+    document.getElementById('hardBtn').classList.toggle('active', level === 'hard');
+    startNewGame();
+  }
+
+  function startNewGame() {
+    board = Array(9).fill('');
+    gameActive = true;
+    statusEl.textContent = "Tor turn (X)";
+    statusEl.className = 'status';
+    renderBoard();
+  }
+
+  startNewGame();
+</script>
+
+</body>
+</html>
